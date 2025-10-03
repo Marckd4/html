@@ -18,6 +18,7 @@
         }
         td[contenteditable="true"] {
             background-color: #fffbe6;
+            outline: 2px solid #ffd966;
         }
     </style>
 </head>
@@ -51,19 +52,19 @@
                         <option value="">Chofer</option>
                         <option value="Cristian Rosales">Cristian Rosales</option>
                         <option value="Sandro Cartagena">Sandro Cartagena</option>
-                        <option value="Sandro Cartagena">Miguel Jofre</option>
-                        <option value="Sandro Cartagena">Felipe M</option>
-                        <option value="Sandro Cartagena">Patricio Castro </option>
-                        <option value="Sandro Cartagena">Sergio Duarte </option>
-                        <option value="Sandro Cartagena">Externo Bodega Lingues</option>
-                        <option value="Sandro Cartagena">Externo </option>
+                        <option value="Miguel Jofre">Miguel Jofre</option>
+                        <option value="Felipe M">Felipe M</option>
+                        <option value="Patricio Castro">Patricio Castro</option>
+                        <option value="Sergio Duarte">Sergio Duarte</option>
+                        <option value="Externo Bodega Lingues">Externo Bodega Lingues</option>
+                        <option value="Externo">Externo</option>
                     </select>
                 </div>
                 <div class="col-md-1">
-                    <input type="number" id="pallets" placeholder="Pallets" class="form-control" required>
+                    <input type="number" id="pallets" placeholder="Pallets" class="form-control" required min="0">
                 </div>
                 <div class="col-md-2">
-                    <input type="number" id="bultos" placeholder="Bultos" class="form-control" required>
+                    <input type="number" id="bultos" placeholder="Bultos" class="form-control" required min="0">
                 </div>
             </div>
             <div class="mt-3">
@@ -127,14 +128,16 @@
 
             // Eliminar fila
             acciones.querySelector('.eliminar').addEventListener('click', () => {
-                registros.splice(index, 1);
-                guardarDatos();
-                cargarTabla();
+                if(confirm("¿Eliminar este registro?")) {
+                    registros.splice(index, 1);
+                    guardarDatos();
+                    cargarTabla();
+                }
             });
 
             // Editar en línea
             acciones.querySelector('.editar').addEventListener('click', () => {
-                for(let i=0;i<7;i++){
+                for(let i=0; i<7; i++){
                     fila.cells[i].setAttribute('contenteditable', 'true');
                 }
                 fila.cells[7].innerHTML = `
@@ -142,7 +145,6 @@
                     <button class="btn btn-sm btn-secondary cancelar">Cancelar</button>
                 `;
 
-                // Guardar cambios
                 fila.querySelector('.guardar').addEventListener('click', () => {
                     registros[index] = {
                         fecha: fila.cells[0].innerText,
@@ -150,14 +152,13 @@
                         status: fila.cells[2].innerText,
                         numero: fila.cells[3].innerText,
                         chofer: fila.cells[4].innerText,
-                        pallets: fila.cells[5].innerText,
-                        bultos: fila.cells[6].innerText
+                        pallets: parseInt(fila.cells[5].innerText) || 0,
+                        bultos: parseInt(fila.cells[6].innerText) || 0
                     };
                     guardarDatos();
                     cargarTabla();
                 });
 
-                // Cancelar edición
                 fila.querySelector('.cancelar').addEventListener('click', () => {
                     cargarTabla();
                 });
@@ -178,17 +179,28 @@
             status: document.getElementById('status').value,
             numero: document.getElementById('numero').value,
             chofer: document.getElementById('chofer').value,
-            pallets: document.getElementById('pallets').value,
-            bultos: document.getElementById('bultos').value
+            pallets: parseInt(document.getElementById('pallets').value) || 0,
+            bultos: parseInt(document.getElementById('bultos').value) || 0
         });
         guardarDatos();
         cargarTabla();
         formulario.reset();
     });
 
-    // Exportar a Excel
+    // Exportar a Excel sin columna de acciones
     exportarBtn.addEventListener('click', function() {
-        const wb = XLSX.utils.table_to_book(document.getElementById('tabla'), {sheet:"Despachos"});
+        const exportData = registros.map(r => ({
+            Fecha: r.fecha,
+            Sello: r.sello,
+            Status: r.status,
+            Número: r.numero,
+            Chofer: r.chofer,
+            Pallets: r.pallets,
+            Bultos: r.bultos
+        }));
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Despachos");
         XLSX.writeFile(wb, "registro_despachos.xlsx");
     });
 
@@ -201,7 +213,7 @@
         }
     });
 
-    // Inicializar tabla al cargar
+    // Inicializar tabla
     cargarTabla();
 </script>
 </body>
