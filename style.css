@@ -1,12 +1,12 @@
 body{
 
-    background-color:rgb(157, 155, 175) ; 
+    background-color:rgb(157, 155, 175) ; /*fondo de la pagina*/
 }
 
 h1 {
 
     color: rgb(1, 7, 13);
-    width: 400px;
+    width: 600px;
     margin: 0 auto;
 }
 
