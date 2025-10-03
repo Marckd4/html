@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Despachos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .table-wrapper {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .table thead th {
+            position: sticky;
+            top: 0;
+            background: #f8f9fa;
+            z-index: 1;
+        }
+        td[contenteditable="true"] {
+            background-color: #fffbe6;
+        }
+    </style>
+</head>
+<body class="p-4">
+
+<h1 class="text-center mb-4">Registro de Despachos</h1>
+
+<!-- FORMULARIO -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form id="formulario">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <input type="date" id="fecha" class="form-control" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" id="sello" placeholder="Sello" class="form-control" required>
+                </div>
+                <div class="col-md-2">
+                    <select id="status" class="form-select" required>
+                        <option value="">Status</option>
+                        <option value="Guía">Guía</option>
+                        <option value="Factura">Factura</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <input type="text" id="numero" placeholder="Número" class="form-control" required>
+                </div>
+                <div class="col-md-2">
+                    <select id="chofer" class="form-select" required>
+                        <option value="">Chofer</option>
+                        <option value="Cristian Rosales">Cristian Rosales</option>
+                        <option value="Sandro Cartagena">Sandro Cartagena</option>
+                        <option value="Sandro Cartagena">Miguel Jofre</option>
+                        <option value="Sandro Cartagena">Felipe M</option>
+                        <option value="Sandro Cartagena">Patricio Castro </option>
+                        <option value="Sandro Cartagena">Sergio Duarte </option>
+                        <option value="Sandro Cartagena">Externo Bodega Lingues</option>
+                        <option value="Sandro Cartagena">Externo </option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <input type="number" id="pallets" placeholder="Pallets" class="form-control" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" id="bultos" placeholder="Bultos" class="form-control" required>
+                </div>
+            </div>
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary">Agregar Registro</button>
+                <button type="button" class="btn btn-success" id="exportar">Exportar a Excel</button>
+                <button type="button" class="btn btn-danger" id="borrarTodo">Borrar Todo</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- TABLA -->
+<div class="table-wrapper">
+    <table class="table table-bordered" id="tabla">
+        <thead class="table-light">
+            <tr>
+                <th>Fecha</th>
+                <th>Sello</th>
+                <th>Status</th>
+                <th>Número</th>
+                <th>Chofer</th>
+                <th>Pallets</th>
+                <th>Bultos</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Los registros se agregan aquí -->
+        </tbody>
+    </table>
+</div>
+
+<!-- SCRIPT -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+    const formulario = document.getElementById('formulario');
+    const tabla = document.getElementById('tabla').getElementsByTagName('tbody')[0];
+    const exportarBtn = document.getElementById('exportar');
+    const borrarTodoBtn = document.getElementById('borrarTodo');
+
+    // Cargar datos desde localStorage
+    let registros = JSON.parse(localStorage.getItem('registros')) || [];
+
+    function cargarTabla() {
+        tabla.innerHTML = '';
+        registros.forEach((reg, index) => {
+            const fila = tabla.insertRow();
+            fila.insertCell(0).innerText = reg.fecha;
+            fila.insertCell(1).innerText = reg.sello;
+            fila.insertCell(2).innerText = reg.status;
+            fila.insertCell(3).innerText = reg.numero;
+            fila.insertCell(4).innerText = reg.chofer;
+            fila.insertCell(5).innerText = reg.pallets;
+            fila.insertCell(6).innerText = reg.bultos;
+
+            const acciones = fila.insertCell(7);
+            acciones.innerHTML = `
+                <button class="btn btn-sm btn-warning editar">Editar</button>
+                <button class="btn btn-sm btn-danger eliminar">Eliminar</button>
+            `;
+
+            // Eliminar fila
+            acciones.querySelector('.eliminar').addEventListener('click', () => {
+                registros.splice(index, 1);
+                guardarDatos();
+                cargarTabla();
+            });
+
+            // Editar en línea
+            acciones.querySelector('.editar').addEventListener('click', () => {
+                for(let i=0;i<7;i++){
+                    fila.cells[i].setAttribute('contenteditable', 'true');
+                }
+                fila.cells[7].innerHTML = `
+                    <button class="btn btn-sm btn-success guardar">Guardar</button>
+                    <button class="btn btn-sm btn-secondary cancelar">Cancelar</button>
+                `;
+
+                // Guardar cambios
+                fila.querySelector('.guardar').addEventListener('click', () => {
+                    registros[index] = {
+                        fecha: fila.cells[0].innerText,
+                        sello: fila.cells[1].innerText,
+                        status: fila.cells[2].innerText,
+                        numero: fila.cells[3].innerText,
+                        chofer: fila.cells[4].innerText,
+                        pallets: fila.cells[5].innerText,
+                        bultos: fila.cells[6].innerText
+                    };
+                    guardarDatos();
+                    cargarTabla();
+                });
+
+                // Cancelar edición
+                fila.querySelector('.cancelar').addEventListener('click', () => {
+                    cargarTabla();
+                });
+            });
+        });
+    }
+
+    function guardarDatos() {
+        localStorage.setItem('registros', JSON.stringify(registros));
+    }
+
+    // Agregar registro
+    formulario.addEventListener('submit', function(e) {
+        e.preventDefault();
+        registros.push({
+            fecha: document.getElementById('fecha').value,
+            sello: document.getElementById('sello').value,
+            status: document.getElementById('status').value,
+            numero: document.getElementById('numero').value,
+            chofer: document.getElementById('chofer').value,
+            pallets: document.getElementById('pallets').value,
+            bultos: document.getElementById('bultos').value
+        });
+        guardarDatos();
+        cargarTabla();
+        formulario.reset();
+    });
+
+    // Exportar a Excel
+    exportarBtn.addEventListener('click', function() {
+        const wb = XLSX.utils.table_to_book(document.getElementById('tabla'), {sheet:"Despachos"});
+        XLSX.writeFile(wb, "registro_despachos.xlsx");
+    });
+
+    // Borrar todos los registros
+    borrarTodoBtn.addEventListener('click', () => {
+        if(confirm("¿Estás seguro que quieres borrar todos los registros?")) {
+            registros = [];
+            guardarDatos();
+            cargarTabla();
+        }
+    });
+
+    // Inicializar tabla al cargar
+    cargarTabla();
+</script>
+</body>
+</html>
